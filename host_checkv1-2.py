@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Simple system monitoring tool using the psutil library
 Shows CPU and RAM usage"""
 
@@ -67,7 +68,7 @@ def performance_display(performance_metric):
 def write_csv_header(log_file_name, performance_metric):
     '''Check to see if file is new, and if so write a header row for the log data'''
     #Define the header row contents, based on keys in the performance dictionary
-    header_row = "," .join(performance_metric.keys())
+    header_row = ",".join(performance_metric.keys())
     #Check to see if log file exists and is not empty
     if not os.path.exists(log_file_name) or os.stat(log_file_name).st_size == 0:
         with open(log_file_name, "a") as log_file:
@@ -99,8 +100,11 @@ def log_data(performance_metric):
         )
         
     #Write the log entry to the file
-    with open(log_file_name, "a") as log_file:
-        log_file.write(log_entry)
+    try:
+        with open(log_file_name, "a") as log_file:
+            log_file.write(log_entry)
+    except IOError as e:
+        print(f"Failed to write log entry: {e}")
         
     
 def main():
