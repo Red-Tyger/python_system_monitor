@@ -36,6 +36,13 @@ def byte_format(bytesvalue, suffix="B"):
 
 def system_performance():
     '''Looks at system and returns performance numbers as a dictionary'''
+    #generate a list of all users currently logged in to a system
+    users_list = psutil.users()
+    #list comprehension creates a list of current user names
+    user_names = [user.name for user in users_list]
+    #make a single string of all logged on users
+    logged_in = ", ".join(user_names)
+    
     current_host = get_hostname()
     current_os = my_os()
     cpu_usage = psutil.cpu_percent(interval=1)
@@ -45,10 +52,30 @@ def system_performance():
     byte_sent = byte_format(net_io.bytes_sent)
     byte_received = byte_format(net_io.bytes_recv)
     
+    #check to see if system temperatures data is available, if so collect it for reporting
+    
+    cpu_temp = "N/A"
+    try:
+        #psutil returns dictionary of sensor data
+        #coretemp is a common key on Linux OS machines
+        temps = psutil.sensors_temperatures()
+        if "coretemp" in temps:
+            #Access first item in list of tuples
+            cpu_temp = temps["coretemp"][0].current
+        #add other checks for other OS systems
+    except AttributeError:
+        #handles error where core temperature is not implemented in the OS
+        cpu_temp = "N/A"
+    except Exception as e:
+        print(f"Error getting CPU temperature : {e}")
+        
+    
     return {
+        "logged_in" : logged_in,
         "current_host" : current_host,
         "current_os" : current_os,
         "cpu_usage" : cpu_usage,
+        "cpu_temp" : cpu_temp,
         "ram_usage" : ram_usage,
         "disk_used" : disk_used,
         "byte_sent" : byte_sent,
@@ -57,9 +84,11 @@ def system_performance():
 
 def performance_display(performance_metric):
     '''Accepts a dictionary of performance metrics and displays them'''
+    print(f"Logged in users: {performance_metric['logged_in']}")
     print(f"Host Name : {performance_metric['current_host']}")
     print(f"OS Platform : {performance_metric['current_os']}")
     print(f"CPU Usage : {performance_metric['cpu_usage']}%")
+    print(f"CPU Temp : {performance_metric['cpu_temp']}°")
     print(f"RAM Usage : {performance_metric['ram_usage']}%")
     print(f"Disk Usage : {performance_metric['disk_used']}%")
     print(f"Bytes Sent : {performance_metric['byte_sent']}")
@@ -90,9 +119,11 @@ def log_data(performance_metric):
     #Create the log entry in CSV format
     log_entry = (
         f"{time_stamp},"
+        f"{performance_metric['logged_in']},"
         f"{performance_metric['current_host']},"
         f"{performance_metric['current_os']},"
         f"{performance_metric['cpu_usage']},"
+        f"{performance_metric['cpu_temp']},"
         f"{performance_metric['ram_usage']},"
         f"{performance_metric['disk_used']},"
         f"{performance_metric['byte_sent']},"
