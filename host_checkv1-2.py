@@ -42,9 +42,7 @@ def system_performance():
     #make a single string of all logged on users
     logged_in = ", ".join(user_names)
     
-    #current_host = get_hostname()
-    #current_os = my_os()
-    cpu_usage = psutil.cpu_percent(interval=1)
+    cpu_usage = psutil.cpu_percent(interval=0.5)
     ram_usage = psutil.virtual_memory().percent
     disk_used = psutil.disk_usage("/").percent
     net_io = psutil.net_io_counters()
@@ -70,8 +68,6 @@ def system_performance():
         
     return {
         "logged_in" : logged_in,
-        #"current_host" : current_host,
-        #"current_os" : current_os,
         "cpu_usage" : cpu_usage,
         "cpu_temp" : cpu_temp,
         "ram_usage" : ram_usage,
@@ -82,6 +78,7 @@ def system_performance():
 
 def performance_display(performance_metric,current_host,current_os):
     '''Accepts a dictionary of performance metrics and displays them'''
+    print("Python System Monitor Script")
     print(f"Host Name : {current_host}")
     print(f"OS Platform : {current_os}")
     print(f"Logged in users: {performance_metric['logged_in']}")
@@ -91,6 +88,7 @@ def performance_display(performance_metric,current_host,current_os):
     print(f"Disk Usage : {performance_metric['disk_used']}%")
     print(f"Bytes Sent : {performance_metric['byte_sent']}")
     print(f"Bytes Received : {performance_metric['byte_received']}")
+    print("CTRL + C to end program.")
 
 def write_csv_header(log_file_name, performance_metric,current_host,current_os):
     '''Check to see if file is new, and if so write a header row for the log data'''
@@ -102,17 +100,10 @@ def write_csv_header(log_file_name, performance_metric,current_host,current_os):
             log_file.write(f"timestamp,{header_row}\n")
 
 def log_data(performance_metric,current_host,current_os):
-    '''logs host performance data to a daily CSV file'''
+    '''collects host performance data as CSV data and returns that data to a cache list'''
     #Create a timestamp for the log entry
     now = datetime.datetime.now()
     time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
-    date_string = now.strftime("%Y-%m-%d")
-    
-    #Define a log file name based on the date
-    log_file_name = f"{current_host}_{date_string}.csv"
-    
-    #check to see if the log file exists and write the log header row if necessary
-    write_csv_header(log_file_name,performance_metric,current_host,current_os)
     
     #Create the log entry in CSV format
     log_entry = (
@@ -127,32 +118,66 @@ def log_data(performance_metric,current_host,current_os):
         f"{performance_metric['byte_sent']},"
         f"{performance_metric['byte_received']}\n"
         )
-        
+    return log_entry
+    
+def write_log(performance_cache, current_host):
     #Write the log entry to the file
+    date_string = datetime.date.today().strftime("%Y-%m-%d")
+    log_file_name = f"{current_host}_{date_string}.csv"
+    
     try:
         with open(log_file_name, "a") as log_file:
-            log_file.write(log_entry)
+            log_file.write("".join(performance_cache))
     except IOError as e:
         print(f"Failed to write log entry: {e}")
-            
+        
+def initialize_log_file(my_systemdata,current_host,current_os):
+    """checks for presence of daily performance CSV log file, and creates it with column headers if id does not"""
+    #write header to CSV file
+    log_file_name = f"{current_host}_{datetime.date.today()}.csv"
+    write_csv_header(log_file_name, my_systemdata, current_host, current_os)
+    
 def main():
-    '''Main function to run the system monitoring application''' 
+    '''Main function to run the system monitoring application'''
+    performance_cache = [] #initialize performance data cache list
+    
     #retrieve static system information
     current_host = get_hostname()
-    current_os = my_os()   
+    current_os = my_os()
+    
+    #create first line data for header of the performance CSV file
+    my_systemdata = system_performance()
+    initialize_log_file(my_systemdata,current_host, current_os)
+    
     try:
         while True:
+            start_time = time.time() #set start time of loop
             #print the screen escape sequence to clear the screen between loops
             clear_screen()
             my_systemdata = system_performance()
             performance_display(my_systemdata,current_host,current_os)
-            log_data(my_systemdata,current_host,current_os)
-            time.sleep(1)
+            performance_cache.append(log_data(my_systemdata,current_host,current_os))
+            
+            # Check if cache is full (e.g., after 60 seconds of data)
+            if len(performance_cache) >= 60:
+                write_log(performance_cache, current_host)
+                performance_cache = [] # Clear the cache after writing
+            
+            #calculate the time elapsed to run through the loop
+            elapsed_time = time.time() - start_time
+            #calculate the balance of time left to sleep so this loop runs at regular 1-second intervals
+            sleep_time = 1.0 - elapsed_time
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+
     except KeyboardInterrupt:
+        clear_screen()
         print("Exiting program.")
+        if len (performance_cache) > 0:
+            write_log(performance_cache, current_host)
+            print("Writing cached data to the performance log.")
         #add a pause so user can confirm program has exited
         time.sleep(3)
     
-
 if __name__ == "__main__":
     main()
