@@ -171,7 +171,10 @@ def main():
     
     #create first line data for header of the performance CSV file
     my_systemdata = system_performance()
-    initialize_log_file(my_systemdata,current_host, current_os)
+    # Call write_csv_header directly
+    date_string = datetime.date.today().strftime("%Y-%m-%d")
+    log_file_name = f"{current_host}_{date_string}.csv"
+    write_csv_header(log_file_name, my_systemdata, current_host, current_os)
     
     try:
         while True:
