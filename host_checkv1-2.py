@@ -33,14 +33,33 @@ def byte_format(bytesvalue, suffix="B"):
             return f"{bytesvalue:.2f}{unit}{suffix}"
         bytesvalue /= 1024
 
+def get_device_ipv4_address():
+    """Retrieves first active IPv4 address by looping through installed network interfaces, skipping the loopback address"""
+    
+    device_interfaces = psutil.net_if_addrs()
+    
+    for interface_name, interface_addresses in device_interfaces.items():
+        if interface_name == "lo":
+            continue #skips the loopback address
+        for address in interface_addresses:
+            if address.family == socket.AF_INET:
+                return address.address, address.netmask #returns tuple if valid IPv4 address found
+    
+    #If no valid IPv4 address has been found
+    return "Not Connected.", ""
+        
+    
+    
 def system_performance():
-    '''Looks at system and returns performance numbers as a dictionary'''
+    '''Looks at system and returns performance data metrics as a dictionary'''
     #generate a list of all users currently logged in to a system
     users_list = psutil.users()
     #list comprehension creates a list of current user names
     user_names = [user.name for user in users_list]
     #make a single string of all logged on users
     logged_in = ", ".join(user_names)
+    
+    my_network_address,subnet_mask = get_device_ipv4_address()
     
     cpu_usage = psutil.cpu_percent(interval=0.5)
     ram_usage = psutil.virtual_memory().percent
@@ -68,6 +87,8 @@ def system_performance():
         
     return {
         "logged_in" : logged_in,
+        "network_ip" : my_network_address,
+        "subnet_mask" : subnet_mask,
         "cpu_usage" : cpu_usage,
         "cpu_temp" : cpu_temp,
         "ram_usage" : ram_usage,
@@ -81,6 +102,7 @@ def performance_display(performance_metric,current_host,current_os):
     print("Python System Monitor Script")
     print(f"Host Name : {current_host}")
     print(f"OS Platform : {current_os}")
+    print(f"IPv4 Address : {performance_metric['network_ip']} Subnet mask : {performance_metric['subnet_mask']}")
     print(f"Logged in users: {performance_metric['logged_in']}")
     print(f"CPU Usage : {performance_metric['cpu_usage']}%")
     print(f"CPU Temp : {performance_metric['cpu_temp']}°")
@@ -111,6 +133,8 @@ def log_data(performance_metric,current_host,current_os):
         f"{current_host},"
         f"{current_os},"
         f"{performance_metric['logged_in']},"
+        f"{performance_metric['network_ip']},"
+        f"{performance_metric['subnet_mask']},"
         f"{performance_metric['cpu_usage']},"
         f"{performance_metric['cpu_temp']},"
         f"{performance_metric['ram_usage']},"
