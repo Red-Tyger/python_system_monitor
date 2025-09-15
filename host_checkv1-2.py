@@ -91,8 +91,13 @@ def system_performance():
         cpu_temp = "N/A"
     except Exception as e:
         print(f"Error getting CPU temperature : {e}")
-    
-    battery_level = round(psutil.sensors_battery().percent)
+        
+    #Check to see if battery percent charge can be found
+    try:
+        battery_level = round(psutil.sensors_battery().percent)
+    except AttributeError:
+        battery_level = "N/A" #default value if there is no battery found
+        
         
     return {
         "logged_in" : logged_in,
