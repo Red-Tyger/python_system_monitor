@@ -84,6 +84,8 @@ def system_performance():
         cpu_temp = "N/A"
     except Exception as e:
         print(f"Error getting CPU temperature : {e}")
+    
+    battery_level = round(psutil.sensors_battery().percent)
         
     return {
         "logged_in" : logged_in,
@@ -94,11 +96,12 @@ def system_performance():
         "ram_usage" : ram_usage,
         "disk_used" : disk_used,
         "byte_sent" : byte_sent,
-        "byte_received" : byte_received
+        "byte_received" : byte_received,
+        "battery_level" : battery_level
     }
 
 def performance_display(performance_metric,current_host,current_os):
-    '''Accepts a dictionary of performance metrics and displays them'''
+    '''Accepts a dictionary of performance metrics, name of the current host, and the current OS and displays them'''
     print("Python System Monitor Script")
     print(f"Host Name : {current_host}")
     print(f"OS Platform : {current_os}")
@@ -110,6 +113,7 @@ def performance_display(performance_metric,current_host,current_os):
     print(f"Disk Usage : {performance_metric['disk_used']}%")
     print(f"Bytes Sent : {performance_metric['byte_sent']}")
     print(f"Bytes Received : {performance_metric['byte_received']}")
+    print(f"Battery Level : {performance_metric['battery_level']}%")
     print("CTRL + C to end program.")
 
 def write_csv_header(log_file_name, performance_metric,current_host,current_os):
@@ -140,7 +144,8 @@ def log_data(performance_metric,current_host,current_os):
         f"{performance_metric['ram_usage']},"
         f"{performance_metric['disk_used']},"
         f"{performance_metric['byte_sent']},"
-        f"{performance_metric['byte_received']}\n"
+        f"{performance_metric['byte_received']},"
+        f"{performance_metric['battery_level']}\n"
         )
     return log_entry
     
