@@ -168,12 +168,6 @@ def write_log(performance_cache, current_host):
             log_file.write("".join(performance_cache))
     except IOError as e:
         print(f"Failed to write log entry: {e}")
-        
-def initialize_log_file(my_systemdata,current_host,current_os):
-    """checks for presence of daily performance CSV log file, and creates it with column headers if id does not"""
-    #write header to CSV file
-    log_file_name = f"{current_host}_{datetime.date.today()}.csv"
-    write_csv_header(log_file_name, my_systemdata, current_host, current_os)
     
 def main():
     '''Main function to run the system monitoring application'''
