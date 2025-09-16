@@ -55,10 +55,28 @@ def get_device_ipv4_address():
     #If no valid IPv4 address has been found, returning blank values for subnet_mask and interface_type
     return "Not Connected.", "", ""
         
-    
+def get_uptime():
+    '''determines the time the device has been on and returns a human-readable value'''
+    try:
+        boot_time_stamp = psutil.boot_time()
+        uptime_seconds = time.time() - boot_time_stamp
+        
+        #convert seconds to timedelta object for formatting
+        uptime_delta = datetime.timedelta(seconds=uptime_seconds)
+        #calculate days, hours, minutes and return as a string
+        days = uptime_delta.days
+        hours = uptime_delta.seconds // 3600
+        minutes = (uptime_delta.seconds % 3600) // 60
+        seconds = uptime_delta.seconds % 60
+        
+        return f"{days}d : {hours}h : {minutes}m : {seconds}s"
+    except Exception as e:
+        return f"Uptime error : {e}"
     
 def system_performance():
     '''Looks at system and returns performance data metrics as a dictionary'''
+    #determine uptime
+    my_uptime = get_uptime()
     #generate a list of all users currently logged in to a system
     users_list = psutil.users()
     #list comprehension creates a list of current user names
@@ -100,6 +118,7 @@ def system_performance():
         
         
     return {
+        "my_uptime" : my_uptime,
         "logged_in" : logged_in,
         "network_ip" : my_network_address,
         "subnet_mask" : subnet_mask,
@@ -118,6 +137,7 @@ def performance_display(performance_metric,current_host,current_os):
     print("Python System Monitor Script")
     print(f"Host Name : {current_host}")
     print(f"OS Platform : {current_os}")
+    print(f"System Uptime : {performance_metric['my_uptime']}")
     print(f"IPv4 Address : {performance_metric['network_ip']} Subnet mask : {performance_metric['subnet_mask']} Interface : {performance_metric['interface_type']}")
     print(f"Logged in users: {performance_metric['logged_in']}")
     print(f"CPU Usage : {performance_metric['cpu_usage']}%")
@@ -149,6 +169,7 @@ def log_data(performance_metric,current_host,current_os):
         f"{time_stamp},"
         f"{current_host},"
         f"{current_os},"
+        f"{performance_metric['my_uptime']},"
         f"{performance_metric['logged_in']},"
         f"{performance_metric['network_ip']},"
         f"{performance_metric['subnet_mask']},"
