@@ -73,8 +73,12 @@ def get_uptime():
     except Exception as e:
         return f"Uptime error : {e}"
     
-def system_performance():
-    '''Looks at system and returns performance data metrics as a dictionary'''
+def system_performance(previous_net_io, previous_disk_io):
+    '''Looks at system and returns performance data metrics as a dictionary, and resets previous_net_io and previous_disk_io to new values'''
+    #get current net and disk I/O cumulative metrics
+    current_net_io = psutil.net_io_counters()
+    current_disk_io = psutil.disk_io_counters()
+    
     #determine uptime
     my_uptime = get_uptime()
     #generate a list of all users currently logged in to a system
@@ -89,9 +93,12 @@ def system_performance():
     cpu_usage = psutil.cpu_percent(interval=0.5)
     ram_usage = psutil.virtual_memory().percent
     disk_used = psutil.disk_usage("/").percent
-    net_io = psutil.net_io_counters()
-    byte_sent = byte_format(net_io.bytes_sent)
-    byte_received = byte_format(net_io.bytes_recv)
+    #disk_io = psutil.disk_io_counters()
+    disk_reads = byte_format(current_disk_io.read_bytes-previous_disk_io.read_bytes)
+    disk_writes = byte_format(current_disk_io.write_bytes-previous_disk_io.write_bytes)
+    #net_io = psutil.net_io_counters()
+    byte_sent = byte_format(current_net_io.bytes_sent-previous_net_io.bytes_sent)
+    byte_received = byte_format(current_net_io.bytes_recv-previous_net_io.bytes_recv)
     
     #check to see if system temperatures data is available, if so collect it for reporting
     
@@ -127,10 +134,12 @@ def system_performance():
         "cpu_temp" : cpu_temp,
         "ram_usage" : ram_usage,
         "disk_used" : disk_used,
+        "disk_reads" : disk_reads,
+        "disk_writes" : disk_writes,
         "byte_sent" : byte_sent,
         "byte_received" : byte_received,
         "battery_level" : battery_level
-    }
+    }, current_net_io, current_disk_io
 
 def performance_display(performance_metric,current_host,current_os):
     '''Accepts a dictionary of performance metrics, name of the current host, and the current OS and displays them'''
@@ -143,7 +152,7 @@ def performance_display(performance_metric,current_host,current_os):
     print(f"CPU Usage : {performance_metric['cpu_usage']}%")
     print(f"CPU Temp : {performance_metric['cpu_temp']}°")
     print(f"RAM Usage : {performance_metric['ram_usage']}%")
-    print(f"Disk Usage : {performance_metric['disk_used']}%")
+    print(f"Disk Usage : {performance_metric['disk_used']}% Disk Reads : {performance_metric['disk_reads']} Disk Writes : {performance_metric['disk_writes']}")
     print(f"Bytes Sent : {performance_metric['byte_sent']}")
     print(f"Bytes Received : {performance_metric['byte_received']}")
     print(f"Battery Level : {performance_metric['battery_level']}%")
@@ -178,6 +187,8 @@ def log_data(performance_metric,current_host,current_os):
         f"{performance_metric['cpu_temp']},"
         f"{performance_metric['ram_usage']},"
         f"{performance_metric['disk_used']},"
+        f"{performance_metric['disk_reads']},"
+        f"{performance_metric['disk_writes']},"
         f"{performance_metric['byte_sent']},"
         f"{performance_metric['byte_received']},"
         f"{performance_metric['battery_level']}\n"
@@ -203,8 +214,12 @@ def main():
     current_host = get_hostname()
     current_os = my_os()
     
+    #initialize persistent variables with current cumulative counters for I/O per second calculation
+    previous_net_io_counter = psutil.net_io_counters()
+    previous_disk_io_counter = psutil.disk_io_counters()
+    
     #create first line data for header of the performance CSV file
-    my_systemdata = system_performance()
+    my_systemdata, previous_net_io_counter, previous_disk_io_counter = system_performance(previous_net_io_counter, previous_disk_io_counter)
     # Call write_csv_header directly
     date_string = datetime.date.today().strftime("%Y-%m-%d")
     log_file_name = f"{current_host}_{date_string}.csv"
@@ -215,7 +230,7 @@ def main():
             start_time = time.time() #set start time of loop
             #print the screen escape sequence to clear the screen between loops
             clear_screen()
-            my_systemdata = system_performance()
+            my_systemdata, previous_net_io_counter, previous_disk_io_counter = system_performance(previous_net_io_counter,previous_disk_io_counter)
             performance_display(my_systemdata,current_host,current_os)
             performance_cache.append(log_data(my_systemdata,current_host,current_os))
             
