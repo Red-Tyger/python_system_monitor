@@ -9,6 +9,7 @@ import time
 import os
 import socket
 import datetime
+import asciichartpy
 
 def clear_screen():
     """Clears the screen using ANSI escape sequences"""
@@ -140,6 +141,13 @@ def system_performance(previous_net_io, previous_disk_io):
         "byte_received" : byte_received_raw,
         "battery_level" : battery_level
     }, current_net_io, current_disk_io
+
+def current_data_range():
+    '''determines the range of data that will be graphed in the terminal display'''
+    pass
+def chart_performance_metrics():
+    '''accepts the latest stream of key metrics to display in graph form, using the asciichartpy library'''
+    pass
 
 def performance_display(performance_metric,current_host,current_os):
     '''Accepts a dictionary of performance metrics, name of the current host, and the current OS and displays them'''
